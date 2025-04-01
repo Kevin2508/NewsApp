@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:newsapp/recommendations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:newsapp/profile_page.dart';
 import 'package:newsapp/notification_page.dart';
@@ -102,6 +103,18 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ),
+              IconButton(
+                icon: const Icon(Icons.recommend, color: Colors.grey),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const RecommendationsPage(),
+                      settings: RouteSettings(arguments: _selectedCategory),
+                    ),
+                  );
+                },
+              ),
               // Category Chips (Horizontally Scrollable)
               Container(
                 height: 40,
@@ -118,12 +131,15 @@ class _HomePageState extends State<HomePage> {
                     return Padding(
                       padding: const EdgeInsets.only(right: 8.0),
                       child: ChoiceChip(
-                        label: Text(
-                          category,
-                          style: TextStyle(
-                            color: isSelected ? Colors.white : Colors.black87,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            fontSize: 14,
+                        label: Padding(
+                          padding: const EdgeInsets.only(bottom: 4.0),
+                          child: Text(
+                            category,
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : Colors.black87,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              fontSize: 14,
+                            ),
                           ),
                         ),
                         selected: isSelected,
@@ -233,11 +249,9 @@ class _NewsFeedState extends State<NewsFeed> {
   Future<Map<String, dynamic>> _fetchArticles() async {
     final supabase = Supabase.instance.client;
     final userId = supabase.auth.currentUser?.id;
-
     if (userId == null) {
       throw Exception('User not authenticated');
     }
-
     final results = await Future.wait([
       supabase
           .from('user_preferences')
@@ -245,20 +259,17 @@ class _NewsFeedState extends State<NewsFeed> {
           .eq('user_id', userId)
           .single(),
       supabase
-          .from('news_articles')
+          .from('news_articles') // Updated table name
           .select()
           .order('published_at', ascending: false),
     ]);
-
     final preferences = results[0] as Map<String, dynamic>;
     final articles = results[1] as List<Map<String, dynamic>>;
-
     return {
       'categories': preferences['categories'] as List<dynamic>? ?? [],
       'articles': articles,
     };
   }
-
   Future<void> _refreshArticles() async {
     setState(() {
       _articlesFuture = _fetchArticles();

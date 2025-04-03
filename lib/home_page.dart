@@ -1,12 +1,15 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:newsapp/recommendations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:newsapp/profile_page.dart';
 import 'package:newsapp/notification_page.dart';
 import 'package:newsapp/search_page.dart';
+import 'package:newsapp/services/api_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:shimmer/shimmer.dart'; // Add shimmer for loading effect
+import 'package:shimmer/shimmer.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -16,8 +19,9 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  String? _selectedCategory = 'All';
+  String? _selectedCategory = 'For You'; // Changed default to "For You"
   final List<String> _categories = [
+    'For You', // Added "For You" as first option
     'All',
     'General',
     'Business',
@@ -75,9 +79,9 @@ class _HomePageState extends State<HomePage> {
                         padding: const EdgeInsets.only(left: 85.0),
                         child: Image.asset('assets/images/Logo.png', width: 40, height: 40),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.only(right: 40.0),
-                        child: const Text(
+                      const Padding(
+                        padding: EdgeInsets.only(right: 40.0),
+                        child: Text(
                           'Newsly',
                           style: TextStyle(
                             fontSize: 22,
@@ -103,18 +107,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.recommend, color: Colors.grey),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const RecommendationsPage(),
-                      settings: RouteSettings(arguments: _selectedCategory),
-                    ),
-                  );
-                },
-              ),
+
               // Category Chips (Horizontally Scrollable)
               Container(
                 height: 40,
@@ -172,10 +165,12 @@ class _HomePageState extends State<HomePage> {
                   },
                 ),
               ),
-              // News Feed (using Supabase)
+
+              // News Feed (using updated service for "For You" content)
               Expanded(
                 child: NewsFeed(selectedCategory: _selectedCategory),
               ),
+
               // Footer/Bottom Navigation with Shadow
               Material(
                 elevation: 4,
@@ -230,7 +225,7 @@ class NewsFeed extends StatefulWidget {
 
 class _NewsFeedState extends State<NewsFeed> {
   final PageController _pageController = PageController();
-  late Future<Map<String, dynamic>> _articlesFuture;
+  late Future<List<Map<String, dynamic>>> _articlesFuture;
 
   @override
   void initState() {
@@ -245,35 +240,68 @@ class _NewsFeedState extends State<NewsFeed> {
       _refreshArticles();
     }
   }
+  static Future<void> populateRecommendations() async {
+    try {
+      final supabase = Supabase.instance.client;
 
-  Future<Map<String, dynamic>> _fetchArticles() async {
-    final supabase = Supabase.instance.client;
-    final userId = supabase.auth.currentUser?.id;
-    if (userId == null) {
-      throw Exception('User not authenticated');
+      // Get all news articles
+      final articles = await supabase
+          .from('news_articles')
+          .select('id, title, description, url, image_url, published_at, keyword')
+          .order('published_at', ascending: false);
+
+      // Batch process to add to recommendations table
+      for (var article in articles) {
+        // Calculate a random similarity score
+        final random = Random();
+        final similarityScore = 0.5 + (random.nextDouble() * 0.5); // Between 0.5 and 1.0
+        final popularityScore = random.nextDouble() * 100; // Between 0 and 100
+
+        // Create recommendation entry
+        final recommendation = {
+          'title': article['title'],
+          'description': article['description'],
+          'url': article['url'],
+          'image_url': article['image_url'],
+          'published_at': article['published_at'],
+          'category': article['keyword'],
+          'similarity_score': similarityScore,
+          'popularity_score': popularityScore,
+          'source_article_id': article['id'],
+          'is_personalized': false,
+        };
+
+        // Insert recommendation
+        await supabase
+            .from('recommendations')
+            .upsert(recommendation, onConflict: 'url');
+      }
+
+      print("Successfully populated recommendations table");
+    } catch (e) {
+      print("Error populating recommendations: $e");
     }
-    final results = await Future.wait([
-      supabase
-          .from('user_preferences')
-          .select('categories')
-          .eq('user_id', userId)
-          .single(),
-      supabase
-          .from('news_articles') // Updated table name
-          .select()
-          .order('published_at', ascending: false),
-    ]);
-    final preferences = results[0] as Map<String, dynamic>;
-    final articles = results[1] as List<Map<String, dynamic>>;
-    return {
-      'categories': preferences['categories'] as List<dynamic>? ?? [],
-      'articles': articles,
-    };
   }
+  Future<List<Map<String, dynamic>>> _fetchArticles() async {
+    final category = widget.selectedCategory ?? 'All';
+    try {
+      // Use the new getNewsArticles method
+      return await ApiService.getNewsArticles(category: category);
+    } catch (e) {
+      print("Error fetching articles: $e");
+      rethrow;
+    }
+  }
+
   Future<void> _refreshArticles() async {
     setState(() {
+      // Fetch fresh data
       _articlesFuture = _fetchArticles();
     });
+
+    // Wait for the future to complete before returning
+    await _articlesFuture;
+    return;
   }
 
   @override
@@ -284,96 +312,21 @@ class _NewsFeedState extends State<NewsFeed> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<Map<String, dynamic>>(
+    return FutureBuilder<List<Map<String, dynamic>>>(
       future: _articlesFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Shimmer.fromColors(
-            baseColor: Colors.grey[300]!,
-            highlightColor: Colors.grey[100]!,
-            child: ListView.builder(
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: 3, // Show 3 shimmer placeholders
-              itemBuilder: (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Column(
-                    children: [
-                      Container(
-                        height: MediaQuery.of(context).size.height * 0.6,
-                        color: Colors.white,
-                      ),
-                      Container(
-                        height: 60,
-                        margin: const EdgeInsets.all(16.0),
-                        color: Colors.white,
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          );
+          return _buildLoadingShimmer();
         }
         if (snapshot.hasError) {
-          print("Error fetching articles: ${snapshot.error}");
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.error_outline, size: 50, color: Colors.red),
-                SizedBox(height: 10),
-                Text(
-                  'Oops! Something went wrong.',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 5),
-                Text(
-                  'Please check your connection or try again later.',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          );
+          return _buildErrorView(snapshot.error);
         }
-        if (!snapshot.hasData || snapshot.data!['articles'].isEmpty) {
-          print("No articles found in Supabase");
-          return const Center(child: Text('No news available'));
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return _buildEmptyView();
         }
 
-        final userCategories = snapshot.data!['categories'] as List<dynamic>;
-        final allArticles = snapshot.data!['articles'] as List<Map<String, dynamic>>;
-
-        List<Map<String, dynamic>> articles;
-        if (widget.selectedCategory == 'All') {
-          articles = userCategories.isEmpty
-              ? allArticles
-              : allArticles.where((article) {
-            final articleKeyword = article['keyword']?.toString();
-            return articleKeyword != null && userCategories.contains(articleKeyword);
-          }).toList();
-        } else {
-          articles = allArticles.where((article) {
-            final articleKeyword = article['keyword']?.toString();
-            return articleKeyword != null && articleKeyword == widget.selectedCategory;
-          }).toList();
-        }
-
-        if (articles.isEmpty) {
-          return Center(
-            child: Text(
-              widget.selectedCategory == 'All'
-                  ? 'No articles match your selected categories'
-                  : 'No articles available for ${widget.selectedCategory}',
-            ),
-          );
-        }
-
-        print("Total articles loaded: ${articles.length}");
-        for (var article in articles) {
-          print("Article image URL: ${article['image_url']}");
-        }
+        final articles = snapshot.data!;
+        print("Displaying ${articles.length} articles");
 
         return RefreshIndicator(
           onRefresh: _refreshArticles,
@@ -387,12 +340,68 @@ class _NewsFeedState extends State<NewsFeed> {
               print("Swiped to page: $page");
             },
             itemBuilder: (context, index) {
-              final article = articles[index];
-              return NewsArticle(article: article);
+              return NewsArticle(article: articles[index]);
             },
           ),
         );
       },
+    );
+  }
+
+  Widget _buildLoadingShimmer() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: ListView.builder(
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: 3,
+        itemBuilder: (_, __) => Container(
+          height: MediaQuery.of(context).size.height * 0.6,
+          margin: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorView(dynamic error) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline, size: 50, color: Colors.red),
+          const SizedBox(height: 10),
+          const Text(
+            'Oops! Something went wrong.',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            'Error: ${error.toString()}',
+            style: const TextStyle(fontSize: 14, color: Colors.grey),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyView() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.article_outlined, size: 70, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+          Text(
+            'No articles for ${widget.selectedCategory}',
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -410,7 +419,38 @@ class NewsArticle extends StatelessWidget {
       return NetworkImage(url);
     } catch (e) {
       print("Error loading image: $url, error: $e");
-      return const AssetImage('assets/placeholder.png');
+      return const AssetImage('assets/placeholder.png',);
+    }
+  }
+
+  String _formatPublishedDate(String? dateString) {
+    if (dateString == null || dateString.isEmpty) {
+      return 'Date unknown';
+    }
+
+    try {
+      final DateTime now = DateTime.now();
+      final DateTime publishedDate = DateTime.parse(dateString);
+      final Duration difference = now.difference(publishedDate);
+
+      if (difference.inDays > 365) {
+        final int years = (difference.inDays / 365).floor();
+        return '$years ${years == 1 ? 'year' : 'years'} ago';
+      } else if (difference.inDays > 30) {
+        final int months = (difference.inDays / 30).floor();
+        return '$months ${months == 1 ? 'month' : 'months'} ago';
+      } else if (difference.inDays > 0) {
+        return '${difference.inDays} ${difference.inDays == 1 ? 'day' : 'days'} ago';
+      } else if (difference.inHours > 0) {
+        return '${difference.inHours} ${difference.inHours == 1 ? 'hour' : 'hours'} ago';
+      } else if (difference.inMinutes > 0) {
+        return '${difference.inMinutes} ${difference.inMinutes == 1 ? 'minute' : 'minutes'} ago';
+      } else {
+        return 'Just now';
+      }
+    } catch (e) {
+      print("Error formatting date: $e");
+      return 'Invalid date';
     }
   }
 
@@ -477,7 +517,7 @@ class NewsArticle extends StatelessWidget {
         children: [
           // Image (Enlarged with Gradient Overlay)
           Expanded(
-            flex: 6, // Increased from 1 to 6 (60% of the space)
+            flex: 6,
             child: Stack(
               children: [
                 ClipRRect(
@@ -486,7 +526,7 @@ class NewsArticle extends StatelessWidget {
                       ? FutureBuilder<ImageProvider>(
                     future: Future.any([
                       _loadImage(article['image_url']),
-                      Future.delayed(const Duration(seconds: 5), () => const AssetImage('assets/placeholder.png')),
+                      Future.delayed(const Duration(seconds: 5), () => const AssetImage('assets/placeholder.png',)),
                     ]),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
@@ -551,6 +591,39 @@ class NewsArticle extends StatelessWidget {
                         ],
                       ),
                     ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        // Category tag
+                        if (article['category'] != null && article['category'].toString().isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFff425e),
+                              borderRadius: BorderRadius.circular(4.0),
+                            ),
+                            child: Text(
+                              article['category'].toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12.0,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        const SizedBox(height: 8.0),
+                        // Publication date
+                        Text(
+                          _formatPublishedDate(article['published_at']?.toString()),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12.0,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -558,9 +631,9 @@ class NewsArticle extends StatelessWidget {
           ),
           // Description (Reduced Space with Improved Styling)
           Expanded(
-            flex: 4, // Reduced from 1 to 4 (40% of the space)
+            flex: 4,
             child: Container(
-              padding: const EdgeInsets.all(12.0),
+              padding: const EdgeInsets.all(16.0),
               color: Colors.white,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -589,6 +662,102 @@ class NewsArticle extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  // Source and author info
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          article['source'] ?? '',
+                          style: const TextStyle(
+                            color: Color(0xFFff425e),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (article['author'] != null && article['author'].toString().isNotEmpty)
+                        Expanded(
+                          child: Text(
+                            'By ${article['author']}',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                              fontStyle: FontStyle.italic,
+                            ),
+                            textAlign: TextAlign.right,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // Action buttons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Share and bookmark buttons
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.share, size: 20),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            color: Colors.grey[600],
+                            onPressed: () {
+                              // Share functionality
+                            },
+                          ),
+                          const SizedBox(width: 16),
+                          IconButton(
+                            icon: const Icon(Icons.bookmark_border, size: 20),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            color: Colors.grey[600],
+                            onPressed: () {
+                              // Bookmark functionality
+                            },
+                          ),
+                        ],
+                      ),
+                      // Read more button
+                      TextButton(
+                        onPressed: () async {
+                          final url = article['url']?.toString();
+                          if (url != null && url.isNotEmpty) {
+                            String formattedUrl = url;
+                            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                              formattedUrl = 'https://$url';
+                            }
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ArticleWebView(url: formattedUrl),
+                              ),
+                            );
+                          }
+                        },
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          backgroundColor: const Color(0xFFff425e).withOpacity(0.1),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: const Text(
+                          'Read more',
+                          style: TextStyle(
+                            color: Color(0xFFff425e),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -610,12 +779,43 @@ class ArticleWebView extends StatefulWidget {
 
 class _ArticleWebViewState extends State<ArticleWebView> {
   late final WebViewController _controller;
+  bool _isLoading = true;
+  String _pageTitle = 'Article';
 
   @override
   void initState() {
     super.initState();
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageStarted: (String url) {
+            setState(() {
+              _isLoading = true;
+            });
+          },
+          onPageFinished: (String url) {
+            _controller.getTitle().then((title) {
+              if (mounted && title != null && title.isNotEmpty) {
+                setState(() {
+                  _pageTitle = title;
+                  _isLoading = false;
+                });
+              } else {
+                setState(() {
+                  _isLoading = false;
+                });
+              }
+            });
+          },
+          onWebResourceError: (WebResourceError error) {
+            print('WebView error: ${error.description}');
+            setState(() {
+              _isLoading = false;
+            });
+          },
+        ),
+      )
       ..loadRequest(Uri.parse(widget.url));
   }
 
@@ -623,9 +823,38 @@ class _ArticleWebViewState extends State<ArticleWebView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Article'),
+        title: Text(
+          _pageTitle,
+          style: const TextStyle(fontSize: 16),
+          overflow: TextOverflow.ellipsis,
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              _controller.reload();
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.open_in_browser),
+            onPressed: () async {
+              final Uri url = Uri.parse(widget.url);
+              if (await canLaunchUrl(url)) {
+                await launchUrl(url, mode: LaunchMode.externalApplication);
+              }
+            },
+          ),
+        ],
       ),
-      body: WebViewWidget(controller: _controller),
+      body: Stack(
+        children: [
+          WebViewWidget(controller: _controller),
+          if (_isLoading)
+            const Center(
+              child: CircularProgressIndicator(),
+            ),
+        ],
+      ),
     );
   }
 }

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:newsapp/newsletter_screen.dart';
+import 'package:newsapp/email_test_screen.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -46,6 +48,33 @@ class ProfilePage extends StatelessWidget {
                 // Navigate to settings page (if needed)
               },
             ),
+            // Find the Column or ListView where you list user options, and add:
+            ListTile(
+              leading: const Icon(Icons.email_outlined, color: Color(0xFFff425e)),
+              title: const Text('Newsletter'),
+              subtitle: const Text('Subscribe to email updates'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const NewsletterScreen()),
+                );
+              },
+            ),
+          // Add this to your profile screen or a developer options screen
+          ListTile(
+            leading: const Icon(Icons.email),
+            title: const Text('Test Email Service'),
+            subtitle: const Text('Verify MailerSend integration'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const EmailTestScreen()),
+              );
+            },
+          ),
+
+// Add the import
             const Spacer(),
             SizedBox(
               width: double.infinity,
@@ -55,7 +84,7 @@ class ProfilePage extends StatelessWidget {
                   backgroundColor: Colors.red, // Logout button color
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
-                child: const Text("Logout", style: TextStyle(fontSize: 18)),
+                child: const Text("Logout", style: TextStyle(fontSize: 18,color: Colors.white)),
               ),
             ),
           ],

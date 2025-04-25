@@ -27,27 +27,27 @@
 ## 📸 Screenshots
 
 ### 🚀 Splash Screen
-![Splash](./assets/screenshots/splash.png)
+![Splash](./assets/screenshots/splash.jpeg)
 
 ---
 
 ### 🏠 Home Screen
-![Home](./assets/screenshots/home.png)
+![Home](./assets/screenshots/home.jpeg)
 
 ---
 
 ### 🔍 Search Functionality
-![Search](./assets/screenshots/search.png)
+![Search](./assets/screenshots/search.jpeg)
 
 ---
 
 ### 👤 Profile Page
-![Profile](./assets/screenshots/profile.png)
+![Profile](./assets/screenshots/profile.jpeg)
 
 ---
 
 ### ✉️ Email Service (News Delivery)
-![Email](./assets/screenshots/email.png)
+![Email](./assets/screenshots/email.jpeg)
 
 ---
 

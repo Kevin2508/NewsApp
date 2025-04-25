@@ -24,24 +24,15 @@
 
 ---
 
-## 📸 Screenshots
-
 <h2>📸 Screenshots</h2>
 
-<h4>🚀 Splash Screen</h4>
-<img src="./assets/screenshots/splash.jpeg" alt="Splash" width="500"/>
-
-<h4>🏠 Home Screen</h4>
-<img src="./assets/screenshots/home.jpeg" alt="Home" width="500"/>
-
-<h4>🔍 Search Functionality</h4>
-<img src="./assets/screenshots/search.jpeg" alt="Search" width="500"/>
-
-<h4>👤 Profile Page</h4>
-<img src="./assets/screenshots/profile.jpeg" alt="Profile" width="500"/>
-
-<h4>✉️ Email Service</h4>
-<img src="./assets/screenshots/email.jpeg" alt="Email" width="500"/>
+<div style="display: flex; flex-wrap: nowrap; gap: 12px;">
+  <img src="./assets/screenshots/splash.jpeg" alt="Splash" width="200"/>
+  <img src="./assets/screenshots/home.jpeg" alt="Home" width="200"/>
+  <img src="./assets/screenshots/search.jpeg" alt="Search" width="200"/>
+  <img src="./assets/screenshots/profile.jpeg" alt="Profile" width="200"/>
+  <img src="./assets/screenshots/email.jpeg" alt="Email" width="200"/>
+</div>
 
 ---
 

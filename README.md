@@ -1,16 +1,44 @@
-# newsapp
+# 📰 Newsly – Personalized News App
 
-A new Flutter project.
+**Newsly** is an intelligent, cross-platform mobile app that delivers personalized news articles based on your interests. Built with **Flutter**, **Supabase**, and **Python**, it leverages NLP techniques like **TF-IDF** and **Latent Semantic Analysis (LSA)** to provide content that actually matters to you — not just clickbait.
 
-## Getting Started
+> “Don’t scroll endlessly — let Newsly serve you what you care about.”
 
-This project is a starting point for a Flutter application.
+---
 
-A few resources to get you started if this is your first Flutter project:
+## 🚀 Features
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- 🔐 **Secure Auth** — Google Sign-In and Email/Password support via Supabase
+- 🧠 **Smart Recommendations** — Based on content similarity using TF-IDF + LSA
+- 📚 **Real-Time News Feed** — Articles updated dynamically from a Supabase backend
+- 📩 **Email Delivery** — Get curated news sent directly to your inbox
+- 🌐 **Responsive UI** — Smooth and consistent across Android, iOS, and Web
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+---
+
+## 🛠️ Tech Stack
+
+| Frontend    | Backend           | Intelligence Layer   |
+|-------------|-------------------|-----------------------|
+| Flutter/Dart| Supabase + Firebase | Python (NLP, LSA, TF-IDF) |
+
+---
+
+## 📸 Screenshots
+
+Coming soon...
+
+---
+
+## 📦 Installation
+
+```bash
+# Clone the repo
+git clone https://github.com/your-username/newsly.git
+cd newsly
+
+# Install dependencies
+flutter pub get
+
+# Run the app
+flutter run

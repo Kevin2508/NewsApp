@@ -26,7 +26,28 @@
 
 ## 📸 Screenshots
 
-Coming soon...
+### 🚀 Splash Screen
+![Splash](./assets/screenshots/splash.png)
+
+---
+
+### 🏠 Home Screen
+![Home](./assets/screenshots/home.png)
+
+---
+
+### 🔍 Search Functionality
+![Search](./assets/screenshots/search.png)
+
+---
+
+### 👤 Profile Page
+![Profile](./assets/screenshots/profile.png)
+
+---
+
+### ✉️ Email Service (News Delivery)
+![Email](./assets/screenshots/email.png)
 
 ---
 

@@ -80,7 +80,7 @@ class _HomePageState extends State<HomePage> {
                         child: Image.asset('assets/images/Logo.png', width: 40, height: 40),
                       ),
                       const Padding(
-                        padding: EdgeInsets.only(right: 40.0),
+                        padding: EdgeInsets.only(right: 80.0),
                         child: Text(
                           'Newsly',
                           style: TextStyle(
@@ -90,19 +90,8 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ),
                       ),
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.notifications, color: Color(0xFFff425e)),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => const NotificationPage()),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
+
+
                     ],
                   ),
                 ),
@@ -697,67 +686,7 @@ class NewsArticle extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   // Action buttons
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Share and bookmark buttons
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.share, size: 20),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            color: Colors.grey[600],
-                            onPressed: () {
-                              // Share functionality
-                            },
-                          ),
-                          const SizedBox(width: 16),
-                          IconButton(
-                            icon: const Icon(Icons.bookmark_border, size: 20),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            color: Colors.grey[600],
-                            onPressed: () {
-                              // Bookmark functionality
-                            },
-                          ),
-                        ],
-                      ),
-                      // Read more button
-                      TextButton(
-                        onPressed: () async {
-                          final url = article['url']?.toString();
-                          if (url != null && url.isNotEmpty) {
-                            String formattedUrl = url;
-                            if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                              formattedUrl = 'https://$url';
-                            }
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ArticleWebView(url: formattedUrl),
-                              ),
-                            );
-                          }
-                        },
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          backgroundColor: const Color(0xFFff425e).withOpacity(0.1),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        child: const Text(
-                          'Read more',
-                          style: TextStyle(
-                            color: Color(0xFFff425e),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+
                 ],
               ),
             ),

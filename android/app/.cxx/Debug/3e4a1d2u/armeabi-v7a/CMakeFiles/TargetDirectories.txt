@@ -1,0 +1,2 @@
+C:/Users/Krish and Kevin/StudioProjects/NewsApp/android/app/.cxx/Debug/3e4a1d2u/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/Krish and Kevin/StudioProjects/NewsApp/android/app/.cxx/Debug/3e4a1d2u/armeabi-v7a/CMakeFiles/rebuild_cache.dir
